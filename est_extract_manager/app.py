@@ -195,21 +195,43 @@ def main():
         
         # File Paths Section
         st.markdown("**📁 파일 경로**")
+        
+        # Check if Streamlit Cloud and fix Windows paths in session_state
+        is_streamlit_cloud = str(Config._PROJECT_ROOT).startswith('/mount/src/')
+        def is_windows_path(path_str):
+            if not path_str:
+                return False
+            path_clean = path_str.strip()
+            return (len(path_clean) >= 3 and path_clean[1] == ':' and path_clean[2] in ['\\', '/']) or \
+                   ('C:\\' in path_clean or 'C:/' in path_clean)
+        
+        # Fix master_list_path if needed
+        master_path_value = st.session_state.master_list_path
+        if is_streamlit_cloud and is_windows_path(master_path_value):
+            master_path_value = Config.DEFAULT_MASTER_LIST_PATH
+            st.session_state.master_list_path = master_path_value
+        
         master_list_path = st.text_input(
             "마스터 설정 파일",
-            value=st.session_state.master_list_path,
+            value=master_path_value,
             help="Master_Config_List.xlsx 파일 경로 (비워두면 기본 경로 사용)"
         )
         # If input is empty, reset to default
         if not master_list_path or not master_list_path.strip():
-            # Use local path if exists, otherwise use default
-            local_master_path = r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx"
-            if Path(local_master_path).exists():
-                st.session_state.master_list_path = local_master_path
-            else:
+            if is_streamlit_cloud:
                 st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
+            else:
+                local_master_path = r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx"
+                if Path(local_master_path).exists():
+                    st.session_state.master_list_path = local_master_path
+                else:
+                    st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
         else:
-            st.session_state.master_list_path = master_list_path.strip()
+            # Check if user entered Windows path in Streamlit Cloud
+            if is_streamlit_cloud and is_windows_path(master_list_path):
+                st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
+            else:
+                st.session_state.master_list_path = master_list_path.strip()
         
         # Validate master list path (use session_state value for consistency)
         master_path_str = st.session_state.master_list_path
@@ -288,9 +310,15 @@ def main():
                     st.info(f"💡 입력된 경로: {master_path_str_clean}")
                     st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
         
+        # Fix watch_folder if needed
+        watch_folder_value = st.session_state.watch_folder
+        if is_streamlit_cloud and is_windows_path(watch_folder_value):
+            watch_folder_value = Config.DEFAULT_WATCH_FOLDER
+            st.session_state.watch_folder = watch_folder_value
+        
         watch_folder = st.text_input(
             "감시 폴더",
-            value=st.session_state.watch_folder,
+            value=watch_folder_value,
             help="새 로그 파일을 감시할 폴더 (비워두면 기본 경로 사용)"
         )
         # If input is empty, reset to default
@@ -298,7 +326,11 @@ def main():
             st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
             watch_folder = st.session_state.watch_folder  # Use default value for validation
         else:
-            st.session_state.watch_folder = watch_folder.strip()
+            # Check if user entered Windows path in Streamlit Cloud
+            if is_streamlit_cloud and is_windows_path(watch_folder):
+                st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+            else:
+                st.session_state.watch_folder = watch_folder.strip()
         
         # Validate watch folder (use session_state value for consistency)
         watch_path_str = st.session_state.watch_folder
@@ -333,9 +365,15 @@ def main():
                 # Update session_state with resolved path
                 st.session_state.watch_folder = str(watch_path)
         
+        # Fix output_folder if needed
+        output_folder_value = st.session_state.output_folder
+        if is_streamlit_cloud and is_windows_path(output_folder_value):
+            output_folder_value = Config.DEFAULT_OUTPUT_FOLDER
+            st.session_state.output_folder = output_folder_value
+        
         output_folder = st.text_input(
             "결과 저장 폴더",
-            value=st.session_state.output_folder,
+            value=output_folder_value,
             help="검증 결과를 저장할 폴더 (비워두면 기본 경로 사용)"
         )
         # If input is empty, reset to default
@@ -343,7 +381,11 @@ def main():
             st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
             output_folder = st.session_state.output_folder  # Use default value for validation
         else:
-            st.session_state.output_folder = output_folder.strip()
+            # Check if user entered Windows path in Streamlit Cloud
+            if is_streamlit_cloud and is_windows_path(output_folder):
+                st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+            else:
+                st.session_state.output_folder = output_folder.strip()
         
         # Validate output folder (use session_state value for consistency)
         output_path_str = st.session_state.output_folder
