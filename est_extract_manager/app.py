@@ -30,15 +30,20 @@ if 'processing_history' not in st.session_state:
 
 def initialize_defaults():
     """Initialize default configuration values."""
-    # Use explicit local path for master file
-    local_master_path = r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx"
+    # Check if running on Streamlit Cloud
+    is_streamlit_cloud = str(Config._PROJECT_ROOT).startswith('/mount/src/')
     
     if 'master_list_path' not in st.session_state:
-        # Check if local path exists, otherwise use default
-        if Path(local_master_path).exists():
-            st.session_state.master_list_path = local_master_path
-        else:
+        if is_streamlit_cloud:
+            # Streamlit Cloud: use relative path
             st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
+        else:
+            # Local Windows: try local path first
+            local_master_path = r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx"
+            if Path(local_master_path).exists():
+                st.session_state.master_list_path = local_master_path
+            else:
+                st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
     if 'watch_folder' not in st.session_state:
         st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
     if 'output_folder' not in st.session_state:
@@ -188,38 +193,85 @@ def main():
         master_path_str = st.session_state.master_list_path
         if master_path_str:
             master_path_str_clean = master_path_str.strip()
+            is_windows_abs = len(master_path_str_clean) >= 3 and master_path_str_clean[1] == ':' and master_path_str_clean[2] in ['\\', '/']
+            is_streamlit_cloud = str(Config._PROJECT_ROOT).startswith('/mount/src/')
+            
             # Check if it's a Windows absolute path (C:\, D:\, etc.)
-            if len(master_path_str_clean) >= 3 and master_path_str_clean[1] == ':' and master_path_str_clean[2] in ['\\', '/']:
-                # Windows absolute path - use as is
-                master_path = Path(master_path_str_clean).resolve()
+            if is_windows_abs:
+                if is_streamlit_cloud:
+                    # Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없음
+                    # 자동으로 기본 경로로 변경
+                    st.warning("⚠️ Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없습니다. 기본 경로로 자동 변경합니다.")
+                    default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
+                    st.session_state.master_list_path = str(default_path)
+                    if default_path.exists():
+                        st.success(f"✅ 마스터 파일 확인됨: {default_path}")
+                    else:
+                        st.info(f"ℹ️ 기본 경로: {default_path}")
+                    st.rerun()
+                else:
+                    # Windows 환경에서 Windows 절대 경로 사용
+                    master_path = Path(master_path_str_clean).resolve()
+                    if master_path.exists() and master_path.is_file():
+                        st.success(f"✅ 마스터 파일 확인됨: {master_path}")
+                    else:
+                        st.warning(f"⚠️ 파일을 찾을 수 없습니다: {master_path}")
+                        st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
+                        
+                        # Suggest local path
+                        local_path = Path(r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx")
+                        if local_path.exists():
+                            st.info(f"💡 로컬 경로에 파일이 있습니다: {local_path}")
+                            if st.button("로컬 경로 사용", key="use_local_master"):
+                                st.session_state.master_list_path = str(local_path)
+                                st.rerun()
+                        
+                        # Suggest default path
+                        default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
+                        if default_path.exists() and default_path != local_path:
+                            st.info(f"💡 기본 경로에 파일이 있습니다: {default_path}")
+                            if st.button("기본 경로 사용", key="use_default_master_win"):
+                                st.session_state.master_list_path = str(default_path)
+                                st.rerun()
             else:
                 # Relative path or Unix absolute path
-                master_path = Path(master_path_str_clean)
-                if not master_path.is_absolute():
-                    master_path = Config._PROJECT_ROOT / master_path
-                master_path = master_path.resolve()
-            
-            if master_path.exists() and master_path.is_file():
-                st.success(f"✅ 마스터 파일 확인됨: {master_path}")
-            else:
-                st.warning(f"⚠️ 파일을 찾을 수 없습니다: {master_path}")
-                st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
-                
-                # Suggest local path
-                local_path = Path(r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx")
-                if local_path.exists():
-                    st.info(f"💡 로컬 경로에 파일이 있습니다: {local_path}")
-                    if st.button("로컬 경로 사용", key="use_local_master"):
-                        st.session_state.master_list_path = str(local_path)
-                        st.rerun()
-                
-                # Suggest default path
-                default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
-                if default_path.exists() and default_path != local_path:
-                    st.info(f"💡 기본 경로에 파일이 있습니다: {default_path}")
-                    if st.button("기본 경로 사용", key="use_default_master"):
+                # Use normalize_path to handle path correctly
+                try:
+                    # Check if path contains Windows path (from previous session)
+                    if 'C:\\' in master_path_str_clean or 'C:/' in master_path_str_clean:
+                        # Contains Windows path - reset to default automatically
+                        st.warning("⚠️ Windows 경로가 감지되었습니다. 기본 경로로 자동 변경합니다.")
+                        default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
                         st.session_state.master_list_path = str(default_path)
+                        if default_path.exists():
+                            st.success(f"✅ 마스터 파일 확인됨: {default_path}")
+                        else:
+                            st.info(f"ℹ️ 기본 경로: {default_path}")
                         st.rerun()
+                    else:
+                        # Normal relative or Unix absolute path
+                        master_path = Path(master_path_str_clean)
+                        if not master_path.is_absolute():
+                            master_path = Config._PROJECT_ROOT / master_path
+                        master_path = master_path.resolve()
+                        
+                        if master_path.exists() and master_path.is_file():
+                            st.success(f"✅ 마스터 파일 확인됨: {master_path}")
+                        else:
+                            st.warning(f"⚠️ 파일을 찾을 수 없습니다: {master_path}")
+                            st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
+                            
+                            # Suggest default path
+                            default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
+                            if default_path.exists():
+                                st.info(f"💡 기본 경로에 파일이 있습니다: {default_path}")
+                                if st.button("기본 경로 사용", key="use_default_master_rel2"):
+                                    st.session_state.master_list_path = str(default_path)
+                                    st.rerun()
+                except Exception as e:
+                    st.error(f"⚠️ 경로 처리 오류: {str(e)}")
+                    st.info(f"💡 입력된 경로: {master_path_str_clean}")
+                    st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
         
         watch_folder = st.text_input(
             "감시 폴더",
@@ -237,16 +289,32 @@ def main():
         watch_path_str = st.session_state.watch_folder
         if watch_path_str:
             watch_path_str_clean = watch_path_str.strip()
-            # Check if it's a Windows absolute path (C:\, D:\, etc.)
-            if len(watch_path_str_clean) >= 3 and watch_path_str_clean[1] == ':' and watch_path_str_clean[2] in ['\\', '/']:
-                # Windows absolute path - use as is
-                watch_path = Path(watch_path_str_clean).resolve()
+            is_windows_abs = len(watch_path_str_clean) >= 3 and watch_path_str_clean[1] == ':' and watch_path_str_clean[2] in ['\\', '/']
+            is_streamlit_cloud = str(Config._PROJECT_ROOT).startswith('/mount/src/')
+            
+            if is_windows_abs:
+                if is_streamlit_cloud:
+                    # Streamlit Cloud: reset to default automatically
+                    st.warning("⚠️ Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없습니다. 기본 경로로 자동 변경합니다.")
+                    st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+                    watch_path = Path(Config.DEFAULT_WATCH_FOLDER).resolve()
+                    st.rerun()
+                else:
+                    # Windows: use as is
+                    watch_path = Path(watch_path_str_clean).resolve()
             else:
-                # Relative path or Unix absolute path
-                watch_path = Path(watch_path_str_clean)
-                if not watch_path.is_absolute():
-                    watch_path = Config._PROJECT_ROOT / watch_path
-                watch_path = watch_path.resolve()
+                # Check if contains Windows path (from previous session)
+                if 'C:\\' in watch_path_str_clean or 'C:/' in watch_path_str_clean:
+                    st.warning("⚠️ Windows 경로가 감지되었습니다. 기본 경로로 자동 변경합니다.")
+                    st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+                    watch_path = Path(Config.DEFAULT_WATCH_FOLDER).resolve()
+                    st.rerun()
+                else:
+                    # Normal relative or Unix absolute path
+                    watch_path = Path(watch_path_str_clean)
+                    if not watch_path.is_absolute():
+                        watch_path = Config._PROJECT_ROOT / watch_path
+                    watch_path = watch_path.resolve()
             
             if watch_path.exists() and watch_path.is_dir():
                 st.success(f"✅ 감시 폴더 확인됨: {watch_path}")
@@ -271,16 +339,32 @@ def main():
         output_path_str = st.session_state.output_folder
         if output_path_str:
             output_path_str_clean = output_path_str.strip()
-            # Check if it's a Windows absolute path (C:\, D:\, etc.)
-            if len(output_path_str_clean) >= 3 and output_path_str_clean[1] == ':' and output_path_str_clean[2] in ['\\', '/']:
-                # Windows absolute path - use as is
-                output_path = Path(output_path_str_clean).resolve()
+            is_windows_abs = len(output_path_str_clean) >= 3 and output_path_str_clean[1] == ':' and output_path_str_clean[2] in ['\\', '/']
+            is_streamlit_cloud = str(Config._PROJECT_ROOT).startswith('/mount/src/')
+            
+            if is_windows_abs:
+                if is_streamlit_cloud:
+                    # Streamlit Cloud: reset to default automatically
+                    st.warning("⚠️ Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없습니다. 기본 경로로 자동 변경합니다.")
+                    st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+                    output_path = Path(Config.DEFAULT_OUTPUT_FOLDER).resolve()
+                    st.rerun()
+                else:
+                    # Windows: use as is
+                    output_path = Path(output_path_str_clean).resolve()
             else:
-                # Relative path or Unix absolute path
-                output_path = Path(output_path_str_clean)
-                if not output_path.is_absolute():
-                    output_path = Config._PROJECT_ROOT / output_path
-                output_path = output_path.resolve()
+                # Check if contains Windows path (from previous session)
+                if 'C:\\' in output_path_str_clean or 'C:/' in output_path_str_clean:
+                    st.warning("⚠️ Windows 경로가 감지되었습니다. 기본 경로로 자동 변경합니다.")
+                    st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+                    output_path = Path(Config.DEFAULT_OUTPUT_FOLDER).resolve()
+                    st.rerun()
+                else:
+                    # Normal relative or Unix absolute path
+                    output_path = Path(output_path_str_clean)
+                    if not output_path.is_absolute():
+                        output_path = Config._PROJECT_ROOT / output_path
+                    output_path = output_path.resolve()
             
             if output_path.exists() and output_path.is_dir():
                 st.success(f"✅ 결과 폴더 확인됨: {output_path}")
