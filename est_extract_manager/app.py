@@ -184,19 +184,26 @@ def main():
         else:
             st.session_state.master_list_path = master_list_path.strip()
         
-        # Validate master list path
-        if master_list_path:
-            master_path = Path(master_list_path)
-            # Try to resolve relative paths
-            if not master_path.is_absolute():
-                master_path = Path.cwd() / master_path
-            master_path = master_path.resolve()
+        # Validate master list path (use session_state value for consistency)
+        master_path_str = st.session_state.master_list_path
+        if master_path_str:
+            master_path_str_clean = master_path_str.strip()
+            # Check if it's a Windows absolute path (C:\, D:\, etc.)
+            if len(master_path_str_clean) >= 3 and master_path_str_clean[1] == ':' and master_path_str_clean[2] in ['\\', '/']:
+                # Windows absolute path - use as is
+                master_path = Path(master_path_str_clean).resolve()
+            else:
+                # Relative path or Unix absolute path
+                master_path = Path(master_path_str_clean)
+                if not master_path.is_absolute():
+                    master_path = Config._PROJECT_ROOT / master_path
+                master_path = master_path.resolve()
             
             if master_path.exists() and master_path.is_file():
-                st.success("✅ 마스터 파일 확인됨")
+                st.success(f"✅ 마스터 파일 확인됨: {master_path}")
             else:
                 st.warning(f"⚠️ 파일을 찾을 수 없습니다: {master_path}")
-                st.info(f"💡 현재 작업 디렉토리: {Path.cwd()}")
+                st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
                 
                 # Suggest local path
                 local_path = Path(r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx")
@@ -207,7 +214,7 @@ def main():
                         st.rerun()
                 
                 # Suggest default path
-                default_path = Path(Config.DEFAULT_MASTER_LIST_PATH)
+                default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
                 if default_path.exists() and default_path != local_path:
                     st.info(f"💡 기본 경로에 파일이 있습니다: {default_path}")
                     if st.button("기본 경로 사용", key="use_default_master"):
@@ -222,16 +229,31 @@ def main():
         # If input is empty, reset to default
         if not watch_folder or not watch_folder.strip():
             st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+            watch_folder = st.session_state.watch_folder  # Use default value for validation
         else:
             st.session_state.watch_folder = watch_folder.strip()
         
-        # Validate watch folder
-        if watch_folder:
-            watch_path = Path(watch_folder)
-            if watch_path.exists() and watch_path.is_dir():
-                st.success("✅ 감시 폴더 확인됨")
+        # Validate watch folder (use session_state value for consistency)
+        watch_path_str = st.session_state.watch_folder
+        if watch_path_str:
+            watch_path_str_clean = watch_path_str.strip()
+            # Check if it's a Windows absolute path (C:\, D:\, etc.)
+            if len(watch_path_str_clean) >= 3 and watch_path_str_clean[1] == ':' and watch_path_str_clean[2] in ['\\', '/']:
+                # Windows absolute path - use as is
+                watch_path = Path(watch_path_str_clean).resolve()
             else:
-                st.info(f"ℹ️ 폴더가 없으면 자동 생성됩니다: {watch_folder}")
+                # Relative path or Unix absolute path
+                watch_path = Path(watch_path_str_clean)
+                if not watch_path.is_absolute():
+                    watch_path = Config._PROJECT_ROOT / watch_path
+                watch_path = watch_path.resolve()
+            
+            if watch_path.exists() and watch_path.is_dir():
+                st.success(f"✅ 감시 폴더 확인됨: {watch_path}")
+            else:
+                st.info(f"ℹ️ 폴더가 없으면 자동 생성됩니다: {watch_path}")
+                # Update session_state with resolved path
+                st.session_state.watch_folder = str(watch_path)
         
         output_folder = st.text_input(
             "결과 저장 폴더",
@@ -241,16 +263,31 @@ def main():
         # If input is empty, reset to default
         if not output_folder or not output_folder.strip():
             st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+            output_folder = st.session_state.output_folder  # Use default value for validation
         else:
             st.session_state.output_folder = output_folder.strip()
         
-        # Validate output folder
-        if output_folder:
-            output_path = Path(output_folder)
-            if output_path.exists() and output_path.is_dir():
-                st.success("✅ 결과 폴더 확인됨")
+        # Validate output folder (use session_state value for consistency)
+        output_path_str = st.session_state.output_folder
+        if output_path_str:
+            output_path_str_clean = output_path_str.strip()
+            # Check if it's a Windows absolute path (C:\, D:\, etc.)
+            if len(output_path_str_clean) >= 3 and output_path_str_clean[1] == ':' and output_path_str_clean[2] in ['\\', '/']:
+                # Windows absolute path - use as is
+                output_path = Path(output_path_str_clean).resolve()
             else:
-                st.info(f"ℹ️ 폴더가 없으면 자동 생성됩니다: {output_folder}")
+                # Relative path or Unix absolute path
+                output_path = Path(output_path_str_clean)
+                if not output_path.is_absolute():
+                    output_path = Config._PROJECT_ROOT / output_path
+                output_path = output_path.resolve()
+            
+            if output_path.exists() and output_path.is_dir():
+                st.success(f"✅ 결과 폴더 확인됨: {output_path}")
+            else:
+                st.info(f"ℹ️ 폴더가 없으면 자동 생성됩니다: {output_path}")
+                # Update session_state with resolved path
+                st.session_state.output_folder = str(output_path)
         
         st.markdown("---")
         
