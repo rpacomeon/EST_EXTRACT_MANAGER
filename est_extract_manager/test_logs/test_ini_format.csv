@@ -1,0 +1,25 @@
+[SYSTEM_INFO]
+Tool_Name: nST2 Setup Tool
+Version: 1.5.0
+Date: 2026-01-03 12:00:00
+
+[PUMP_IDENTIFICATION]
+Model_Type: nXDS15i
+Serial_No: 12345678
+Firmware: V1.02.04
+Run_Time: 12540 hrs
+
+[CONFIGURATION_PARAMETERS]
+801: ControlMode = 1 (Serial)
+802: NormalSpeed = 60 (Hz)
+803: StandbySpeed = 40 (Hz)
+805: TempAlertLimit = 75 (degC)
+806: TempFaultLimit = 85 (degC)
+
+Parameter_ID,Parameter_Name,Value,Unit,Description
+801,Control_Mode,1,Numeric,0:Local/1:Serial/2:Remote
+802,Normal_Speed,60.0,Hz,Target operating frequency
+803,Standby_Speed,40.0,Hz,Lower speed for idle
+805,Alert_Temp,75,Celsius,Upper limit for warning
+806,Fault_Temp,85,Celsius,Upper limit for shutdown
+
