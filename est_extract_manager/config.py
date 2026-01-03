@@ -55,11 +55,20 @@ class Config:
             """Convert path to absolute path."""
             if not path_str:
                 return path_str
-            path_obj = Path(path_str)
+            
+            # Check if it's a Windows absolute path (C:\, D:\, etc.)
+            # Windows paths should not be combined with project root
+            path_str_clean = path_str.strip()
+            if len(path_str_clean) >= 3 and path_str_clean[1] == ':' and path_str_clean[2] in ['\\', '/']:
+                # Windows absolute path (e.g., C:\Users\...)
+                return str(Path(path_str_clean).resolve())
+            
+            path_obj = Path(path_str_clean)
             
             # Handle Streamlit Cloud paths (/mount/src/...)
             # Fix duplicate directory names: /mount/src/project/project/file -> /mount/src/project/file
-            if str(path_obj).startswith('/mount/src/'):
+            path_str_lower = str(path_obj).lower()
+            if path_str_lower.startswith('/mount/src/'):
                 parts = path_obj.parts
                 project_name = Config._PROJECT_ROOT.name
                 if project_name in parts:
@@ -71,6 +80,7 @@ class Config:
                         path_obj = Path(*fixed_parts)
             
             # If relative path, resolve relative to project root
+            # But skip if it's already an absolute path (Unix-style)
             if not path_obj.is_absolute():
                 path_obj = Config._PROJECT_ROOT / path_obj
             
