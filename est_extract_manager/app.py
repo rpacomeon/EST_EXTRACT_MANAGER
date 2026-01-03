@@ -171,10 +171,23 @@ def main():
         # Validate master list path
         if master_list_path:
             master_path = Path(master_list_path)
+            # Try to resolve relative paths
+            if not master_path.is_absolute():
+                master_path = Path.cwd() / master_path
+            master_path = master_path.resolve()
+            
             if master_path.exists() and master_path.is_file():
                 st.success("✅ 마스터 파일 확인됨")
             else:
-                st.warning(f"⚠️ 파일을 찾을 수 없습니다: {master_list_path}")
+                st.warning(f"⚠️ 파일을 찾을 수 없습니다: {master_path}")
+                st.info(f"💡 현재 작업 디렉토리: {Path.cwd()}")
+                # Suggest default path
+                default_path = Path(Config.DEFAULT_MASTER_LIST_PATH)
+                if default_path.exists():
+                    st.info(f"💡 기본 경로에 파일이 있습니다: {default_path}")
+                    if st.button("기본 경로 사용", key="use_default_master"):
+                        st.session_state.master_list_path = str(default_path)
+                        st.rerun()
         
         watch_folder = st.text_input(
             "감시 폴더",
