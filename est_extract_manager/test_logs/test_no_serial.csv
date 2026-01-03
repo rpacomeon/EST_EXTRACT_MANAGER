@@ -1,9 +1,0 @@
-Date,2024-01-15 14:30:25
-Software Version,3.2.1
-Firmware Version,2.1.5
-Model,STP-iXA4506C
-
-Section,Parameter,Current_Value,Original_Value,Unit
-Pump Control,Operating Mode,High Vacuum,Medium Vacuum,-
-Temperature,Alert Limit,75,70,degC
-

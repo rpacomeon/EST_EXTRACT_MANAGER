@@ -1,8 +1,0 @@
-streamlit
-pandas
-watchdog
-Pillow
-openpyxl
-Office365-REST-Python-Client
-reportlab
-python-dotenv

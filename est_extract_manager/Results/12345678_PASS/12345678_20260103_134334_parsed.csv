@@ -1,4 +1,0 @@
-﻿Section,Parameter,Current_Value,Original_Value,Unit
-Pump Control,Operating Mode,High Vacuum,Medium Vacuum,-
-Temperature,Alert Limit,75,70,degC
-Temperature,Fault Limit,85,80,degC
