@@ -33,21 +33,43 @@ def initialize_defaults():
     # Check if running on Streamlit Cloud
     is_streamlit_cloud = str(Config._PROJECT_ROOT).startswith('/mount/src/')
     
+    # Helper function to check if path is Windows absolute path
+    def is_windows_path(path_str):
+        if not path_str:
+            return False
+        path_clean = path_str.strip()
+        return (len(path_clean) >= 3 and path_clean[1] == ':' and path_clean[2] in ['\\', '/']) or \
+               ('C:\\' in path_clean or 'C:/' in path_clean)
+    
+    # Master list path
     if 'master_list_path' not in st.session_state:
         if is_streamlit_cloud:
-            # Streamlit Cloud: use relative path
             st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
         else:
-            # Local Windows: try local path first
             local_master_path = r"C:\Users\dhaud\Desktop\est_extract_manager\Master_Config_List.xlsx"
             if Path(local_master_path).exists():
                 st.session_state.master_list_path = local_master_path
             else:
                 st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
+    elif is_streamlit_cloud and is_windows_path(st.session_state.master_list_path):
+        # Streamlit Cloud: auto-fix Windows paths
+        st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
+    
+    # Watch folder
     if 'watch_folder' not in st.session_state:
         st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+    elif is_streamlit_cloud and is_windows_path(st.session_state.watch_folder):
+        # Streamlit Cloud: auto-fix Windows paths
+        st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+    
+    # Output folder
     if 'output_folder' not in st.session_state:
         st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+    elif is_streamlit_cloud and is_windows_path(st.session_state.output_folder):
+        # Streamlit Cloud: auto-fix Windows paths
+        st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+    
+    # SharePoint settings
     if 'sharepoint_site_url' not in st.session_state:
         st.session_state.sharepoint_site_url = Config.SHAREPOINT_SITE_URL
     if 'sharepoint_list_name' not in st.session_state:
@@ -199,16 +221,12 @@ def main():
             # Check if it's a Windows absolute path (C:\, D:\, etc.)
             if is_windows_abs:
                 if is_streamlit_cloud:
-                    # Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없음
-                    # 자동으로 기본 경로로 변경
-                    st.warning("⚠️ Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없습니다. 기본 경로로 자동 변경합니다.")
+                    # Streamlit Cloud: already fixed in initialize_defaults, just use default
                     default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
-                    st.session_state.master_list_path = str(default_path)
                     if default_path.exists():
                         st.success(f"✅ 마스터 파일 확인됨: {default_path}")
                     else:
                         st.info(f"ℹ️ 기본 경로: {default_path}")
-                    st.rerun()
                 else:
                     # Windows 환경에서 Windows 절대 경로 사용
                     master_path = Path(master_path_str_clean).resolve()
@@ -239,15 +257,12 @@ def main():
                 try:
                     # Check if path contains Windows path (from previous session)
                     if 'C:\\' in master_path_str_clean or 'C:/' in master_path_str_clean:
-                        # Contains Windows path - reset to default automatically
-                        st.warning("⚠️ Windows 경로가 감지되었습니다. 기본 경로로 자동 변경합니다.")
+                        # Already fixed in initialize_defaults, just use default
                         default_path = Path(Config.DEFAULT_MASTER_LIST_PATH).resolve()
-                        st.session_state.master_list_path = str(default_path)
                         if default_path.exists():
                             st.success(f"✅ 마스터 파일 확인됨: {default_path}")
                         else:
                             st.info(f"ℹ️ 기본 경로: {default_path}")
-                        st.rerun()
                     else:
                         # Normal relative or Unix absolute path
                         master_path = Path(master_path_str_clean)
@@ -294,21 +309,16 @@ def main():
             
             if is_windows_abs:
                 if is_streamlit_cloud:
-                    # Streamlit Cloud: reset to default automatically
-                    st.warning("⚠️ Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없습니다. 기본 경로로 자동 변경합니다.")
-                    st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+                    # Streamlit Cloud: already fixed in initialize_defaults, just use default
                     watch_path = Path(Config.DEFAULT_WATCH_FOLDER).resolve()
-                    st.rerun()
                 else:
                     # Windows: use as is
                     watch_path = Path(watch_path_str_clean).resolve()
             else:
                 # Check if contains Windows path (from previous session)
                 if 'C:\\' in watch_path_str_clean or 'C:/' in watch_path_str_clean:
-                    st.warning("⚠️ Windows 경로가 감지되었습니다. 기본 경로로 자동 변경합니다.")
-                    st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+                    # Already fixed in initialize_defaults, just use default
                     watch_path = Path(Config.DEFAULT_WATCH_FOLDER).resolve()
-                    st.rerun()
                 else:
                     # Normal relative or Unix absolute path
                     watch_path = Path(watch_path_str_clean)
@@ -344,21 +354,16 @@ def main():
             
             if is_windows_abs:
                 if is_streamlit_cloud:
-                    # Streamlit Cloud: reset to default automatically
-                    st.warning("⚠️ Streamlit Cloud에서는 Windows 절대 경로를 사용할 수 없습니다. 기본 경로로 자동 변경합니다.")
-                    st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+                    # Streamlit Cloud: already fixed in initialize_defaults, just use default
                     output_path = Path(Config.DEFAULT_OUTPUT_FOLDER).resolve()
-                    st.rerun()
                 else:
                     # Windows: use as is
                     output_path = Path(output_path_str_clean).resolve()
             else:
                 # Check if contains Windows path (from previous session)
                 if 'C:\\' in output_path_str_clean or 'C:/' in output_path_str_clean:
-                    st.warning("⚠️ Windows 경로가 감지되었습니다. 기본 경로로 자동 변경합니다.")
-                    st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+                    # Already fixed in initialize_defaults, just use default
                     output_path = Path(Config.DEFAULT_OUTPUT_FOLDER).resolve()
-                    st.rerun()
                 else:
                     # Normal relative or Unix absolute path
                     output_path = Path(output_path_str_clean)
