@@ -205,15 +205,16 @@ def main():
             return (len(path_clean) >= 3 and path_clean[1] == ':' and path_clean[2] in ['\\', '/']) or \
                    ('C:\\' in path_clean or 'C:/' in path_clean)
         
-        # Fix master_list_path if needed
+        # Fix master_list_path if needed - must happen before text_input
         master_path_value = st.session_state.master_list_path
         if is_streamlit_cloud and is_windows_path(master_path_value):
+            st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
             master_path_value = Config.DEFAULT_MASTER_LIST_PATH
-            st.session_state.master_list_path = master_path_value
+            st.rerun()  # Force refresh to show correct path
         
         master_list_path = st.text_input(
             "마스터 설정 파일",
-            value=master_path_value,
+            value=st.session_state.master_list_path,  # Always use session_state
             help="Master_Config_List.xlsx 파일 경로 (비워두면 기본 경로 사용)"
         )
         # If input is empty, reset to default
@@ -230,6 +231,7 @@ def main():
             # Check if user entered Windows path in Streamlit Cloud
             if is_streamlit_cloud and is_windows_path(master_list_path):
                 st.session_state.master_list_path = Config.DEFAULT_MASTER_LIST_PATH
+                st.rerun()  # Force refresh after fixing
             else:
                 st.session_state.master_list_path = master_list_path.strip()
         
@@ -310,15 +312,16 @@ def main():
                     st.info(f"💡 입력된 경로: {master_path_str_clean}")
                     st.info(f"💡 프로젝트 루트: {Config._PROJECT_ROOT}")
         
-        # Fix watch_folder if needed
+        # Fix watch_folder if needed - must happen before text_input
         watch_folder_value = st.session_state.watch_folder
         if is_streamlit_cloud and is_windows_path(watch_folder_value):
+            st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
             watch_folder_value = Config.DEFAULT_WATCH_FOLDER
-            st.session_state.watch_folder = watch_folder_value
+            st.rerun()  # Force refresh to show correct path
         
         watch_folder = st.text_input(
             "감시 폴더",
-            value=watch_folder_value,
+            value=st.session_state.watch_folder,  # Always use session_state
             help="새 로그 파일을 감시할 폴더 (비워두면 기본 경로 사용)"
         )
         # If input is empty, reset to default
@@ -329,6 +332,7 @@ def main():
             # Check if user entered Windows path in Streamlit Cloud
             if is_streamlit_cloud and is_windows_path(watch_folder):
                 st.session_state.watch_folder = Config.DEFAULT_WATCH_FOLDER
+                st.rerun()  # Force refresh after fixing
             else:
                 st.session_state.watch_folder = watch_folder.strip()
         
@@ -365,15 +369,16 @@ def main():
                 # Update session_state with resolved path
                 st.session_state.watch_folder = str(watch_path)
         
-        # Fix output_folder if needed
+        # Fix output_folder if needed - must happen before text_input
         output_folder_value = st.session_state.output_folder
         if is_streamlit_cloud and is_windows_path(output_folder_value):
+            st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
             output_folder_value = Config.DEFAULT_OUTPUT_FOLDER
-            st.session_state.output_folder = output_folder_value
+            st.rerun()  # Force refresh to show correct path
         
         output_folder = st.text_input(
             "결과 저장 폴더",
-            value=output_folder_value,
+            value=st.session_state.output_folder,  # Always use session_state
             help="검증 결과를 저장할 폴더 (비워두면 기본 경로 사용)"
         )
         # If input is empty, reset to default
@@ -384,6 +389,7 @@ def main():
             # Check if user entered Windows path in Streamlit Cloud
             if is_streamlit_cloud and is_windows_path(output_folder):
                 st.session_state.output_folder = Config.DEFAULT_OUTPUT_FOLDER
+                st.rerun()  # Force refresh after fixing
             else:
                 st.session_state.output_folder = output_folder.strip()
         
